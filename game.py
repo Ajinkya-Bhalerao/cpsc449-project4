@@ -17,6 +17,9 @@ app.config.from_file(f"./etc/{__name__}.toml", toml.load)
 class Game:
     username: str
 
+@dataclasses.dataclass
+class Callback:
+    callbackUrl: str
 
 @dataclasses.dataclass
 class Guess:
@@ -275,6 +278,22 @@ async def my_game():
             401,
             {"WWW-Authenticate": 'Basic realm = "Login required"'},
         )
+
+@app.route("/webhook", methods=["POST"])
+@validate_request(Callback)
+async def web_hook(data):
+    # auth method referenced from https://www.youtube.com/watch?v=VW8qJxy4XcQ
+    print("webhook reached")
+    currGame = dataclasses.asdict(data)
+    print(currGame)
+    # await db_primary.execute(
+    #     "INSERT INTO callbacks(callbackUrl) VALUES(:callbackUrl)",
+    #     values={"callbackUrl": callbackUrl},
+    # )
+
+    return {
+        "Success": "Succes",
+    }, 201  # should return correct answer?
 
 
 @app.errorhandler(409)
