@@ -143,7 +143,13 @@ async def add_guess(data):
                 "SELECT callbackUrl FROM callbacks WHERE client = :client",
                 values={"client": 'leaderboard'},
             )
-            packet = {"guesses": 6, "result": "win", "username": auth.username}
+
+            guessNum = await db.fetch_one(
+                "SELECT guesses from game where gameid = :gameid",
+                values={"gameid": currGame["gameid"]},
+            )
+
+            packet = {"guesses": guessNum[0], "result": "win", "username": auth.username}
             response = httpx.post(callbackUrl[0], json=packet)
 
             return {
@@ -214,13 +220,17 @@ async def add_guess(data):
 
                 # if after updating game number of guesses reaches max guesses then mark game as finished
                 if guessNum[0] + 1 >= 6:
+
                     # update game status as finished
                     callbackUrl = await db.fetch_one(
                         "SELECT callbackUrl FROM callbacks WHERE client = :client",
                         values={"client": 'leaderboard'},
                     )
-                    packet = {"guesses": 6, "result": "loss", "username": auth.username}
+
+
+                    packet = {"guesses": guessNum[0], "result": "loss", "username": auth.username}
                     response = httpx.post(callbackUrl[0], json=packet)
+
                     await db_primary.execute(
                         """
                         UPDATE game set gstate = :status where gameid = :gameid
