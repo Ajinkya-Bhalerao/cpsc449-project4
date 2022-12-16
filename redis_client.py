@@ -4,6 +4,7 @@ import databases
 import redis
 import httpx
 import time
+import socket
 
 from quart import Quart, request, abort, g
 from quart_schema import QuartSchema, RequestSchemaValidationError, validate_request
@@ -15,22 +16,28 @@ QuartSchema(app)
 
 redis_client = redis.Redis(host='localhost', port=6379, db=0, charset='utf-8', decode_responses=True)
 
+# before serving client establish connection with games service
+# https://www.w3schools.com/python/python_try_except.asp for structure
+response = None
+while response is None:
+    try:
+        game_URL = socket.getfqdn("127.0.0.1:5100")
+        response = httpx.post('http://'+game_URL+'/webhook', json={'callbackUrl': 'http://127.0.0.1:5400/results', 'client': 'leaderboard'})
+    except httpx.RequestError:
+        time.sleep(5)
 
 @dataclasses.dataclass
-
 class LeaderboardInformation:
     username: str
     result: str
     guesses: int
 
 # Connects to game service in start up
-@app.before_serving
-async def connect_game_service():
-    connected = False
-    while (not(connected)):
-        r = httpx.post('http://tuffix-vm/webhook', data={"callbackUrl": "http://127.0.0.1:5400/results"})
-        print("Send Webhook")
-        time.sleep(50)
+# @app.before_serving
+# async def connect_game_service():
+#     time.sleep(50)
+#     r = httpx.post('http://tuffix-vm/webhook', data={"callbackUrl": "http://127.0.0.1:5400/results"})
+#     Print("Send Webhook")
 
 @app.route("/results", methods=["POST"])
 

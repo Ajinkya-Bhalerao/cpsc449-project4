@@ -4,6 +4,7 @@ import uuid
 import databases
 import toml
 import itertools
+import httpx
 from quart import Quart, abort, g, request
 from quart_schema import QuartSchema, validate_request
 
@@ -20,6 +21,7 @@ class Game:
 @dataclasses.dataclass
 class Callback:
     callbackUrl: str
+    client: str
 
 @dataclasses.dataclass
 class Guess:
@@ -205,6 +207,12 @@ async def add_guess(data):
                 # if after updating game number of guesses reaches max guesses then mark game as finished
                 if guessNum[0] + 1 >= 6:
                     # update game status as finished
+                    # callbackUrl = await db.fetch_one(
+                    #     "SELECT callbackUrl FROM callbacks WHERE client = :client",
+                    #     values={"client": 'leaderboard'},
+                    # )
+                    # packet = {"guesses": 5, "result": "win", "username": "User"}
+                    # response = httpx.post(callbackUrl[0], json=packet)
                     await db_primary.execute(
                         """
                         UPDATE game set gstate = :status where gameid = :gameid
@@ -282,18 +290,35 @@ async def my_game():
 @app.route("/webhook", methods=["POST"])
 @validate_request(Callback)
 async def web_hook(data):
-    # auth method referenced from https://www.youtube.com/watch?v=VW8qJxy4XcQ
-    print("webhook reached")
-    currGame = dataclasses.asdict(data)
-    print(currGame)
-    # await db_primary.execute(
-    #     "INSERT INTO callbacks(callbackUrl) VALUES(:callbackUrl)",
-    #     values={"callbackUrl": callbackUrl},
-    # )
+    webhookData = dataclasses.asdict(data)
+    client = webhookData.get('client')
+    callbackUrl = webhookData.get('callbackUrl')
+    db = await _get_db()
+    db_primary = await _get_db_primary()
 
-    return {
-        "Success": "Succes",
-    }, 201  # should return correct answer?
+    # check db if client is already registered
+    check = await db.fetch_all(
+    "SELECT * FROM callbacks WHERE client=:client",
+    values={"client": client},
+    )
+
+    # if not registered add the client and callbackUrl to the DB
+    if len(check) == 0:
+        print("Registering")
+        await db_primary.execute(
+            "INSERT INTO callbacks(callbackUrl, client) VALUES(:callbackUrl, :client)",
+            values={"callbackUrl": callbackUrl, "client": client},
+            )
+        return {
+            "Success": "Client registered",
+        }, 201  # should return correct answer?
+    else:
+        print("Already Registered")
+        return {
+            "Success": "Client already exists",
+        }, 201  # should return correct answer?
+
+
 
 
 @app.errorhandler(409)
