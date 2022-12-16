@@ -17,7 +17,7 @@ QuartSchema(app)
 redis_client = redis.Redis(host='localhost', port=6379, db=0, charset='utf-8', decode_responses=True)
 
 # before serving client establish connection with games service
-# https://www.w3schools.com/python/python_try_except.asp for structure
+# https://www.python-httpx.org/exceptions/
 response = None
 while response is None:
     try:
