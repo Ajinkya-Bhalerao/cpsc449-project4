@@ -138,6 +138,14 @@ async def add_guess(data):
             except sqlite3.IntegrityError as e:
                 abort(404, e)
 
+            # send data to LeaderBoard
+            callbackUrl = await db.fetch_one(
+                "SELECT callbackUrl FROM callbacks WHERE client = :client",
+                values={"client": 'leaderboard'},
+            )
+            packet = {"guesses": 6, "result": "win", "username": auth.username}
+            response = httpx.post(callbackUrl[0], json=packet)
+
             return {
                 "guessedWord": currGame["word"],
                 "Accuracy": "\u2713" * 5,
@@ -207,12 +215,12 @@ async def add_guess(data):
                 # if after updating game number of guesses reaches max guesses then mark game as finished
                 if guessNum[0] + 1 >= 6:
                     # update game status as finished
-                    # callbackUrl = await db.fetch_one(
-                    #     "SELECT callbackUrl FROM callbacks WHERE client = :client",
-                    #     values={"client": 'leaderboard'},
-                    # )
-                    # packet = {"guesses": 5, "result": "win", "username": "User"}
-                    # response = httpx.post(callbackUrl[0], json=packet)
+                    callbackUrl = await db.fetch_one(
+                        "SELECT callbackUrl FROM callbacks WHERE client = :client",
+                        values={"client": 'leaderboard'},
+                    )
+                    packet = {"guesses": 6, "result": "loss", "username": auth.username}
+                    response = httpx.post(callbackUrl[0], json=packet)
                     await db_primary.execute(
                         """
                         UPDATE game set gstate = :status where gameid = :gameid
