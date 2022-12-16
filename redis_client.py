@@ -88,7 +88,7 @@ async def user_data(data):
 
         return redis_client.hgetall('Scores'), 200
 
-@app.route("/LeaderBoard/", methods=["GET"])
+@app.route("/leaderboard", methods=["GET"])
 
 async def scores():
 
