@@ -4,6 +4,7 @@ import databases
 import redis
 import httpx
 import time
+import os
 import socket
 
 from quart import Quart, request, abort, g
@@ -21,8 +22,10 @@ redis_client = redis.Redis(host='localhost', port=6379, db=0, charset='utf-8', d
 response = None
 while response is None:
     try:
-        game_URL = socket.getfqdn("127.0.0.1:5100")
-        response = httpx.post('http://'+game_URL+'/webhook', json={'callbackUrl': 'http://127.0.0.1:5400/results', 'client': 'leaderboard'})
+        game_URL = socket.gethostbyname(socket.getfqdn("tuffix-vm"))
+        port_num = os.environ.get('PORT')
+        callbackUrl = 'http://'+game_URL+':'+port_num+'/result'
+        response = httpx.post('http://tuffix-vm/webhook', json={'callbackUrl': callbackUrl, 'client': 'leaderboard'})
     except httpx.RequestError:
         time.sleep(5)
 

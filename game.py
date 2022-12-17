@@ -5,9 +5,14 @@ import databases
 import toml
 import itertools
 import httpx
+import requests
 from quart import Quart, abort, g, request
 from quart_schema import QuartSchema, validate_request
-
+from redis import Redis
+from rq import Queue, Worker
+from rq.registry import FailedJobRegistry
+from rq.job import Job
+from redis_client import user_data,scores
 app = Quart(__name__)
 QuartSchema(app)
 
@@ -50,7 +55,31 @@ def _get_db_primary():
     if not hasattr(g, "sqlite_db_primary"):
         g.sqlite_db_primary = _connect_db_primary()
     return g.sqlite_db_primary
+#################################################
+#################################################
 
+def send_data_to_redis_client(packet, callbackUrl):
+    try:
+        req = requests.post(url = callbackUrl, json = packet)
+        print(req.status_code)
+    except requests.exceptions.HTTPError:
+        return "Error", req.status_code
+
+# Worker Function for enqueuing the Post request
+def worker(username, result, guesses, callbackUrl):
+    packet = {"guesses": guesses,'result': result,'username':username, }
+    redis = Redis()
+    queue = Queue(connection=Redis())
+    registry = FailedJobRegistry(queue=queue)
+    result = queue.enqueue(send_data_to_redis_client, packet, callbackUrl)
+    print("-------------------------------------Failed Jobs Log-------------------------")
+    for job_id in registry.get_job_ids():
+        job = Job.fetch(job_id, connection=redis)
+        print("JOB ID'S" + job_id)
+    print("------------------------------------------------------------------------------")
+
+#################################################
+#################################################
 
 @app.teardown_appcontext
 async def close_connection(exception):
@@ -149,8 +178,11 @@ async def add_guess(data):
                 values={"gameid": currGame["gameid"]},
             )
 
-            packet = {"guesses": guessNum[0], "result": "win", "username": auth.username}
-            response = httpx.post(callbackUrl[0], json=packet)
+            # packet = {"guesses": guessNum[0], "result": "win", "username": auth.username}
+            # response = httpx.post(callbackUrl[0], json=packet)
+
+            worker(auth.username,"win", guessNum[0],callbackUrl)
+
 
             return {
                 "guessedWord": currGame["word"],
@@ -228,8 +260,9 @@ async def add_guess(data):
                     )
 
 
-                    packet = {"guesses": guessNum[0], "result": "loss", "username": auth.username}
-                    response = httpx.post(callbackUrl[0], json=packet)
+                    # packet = {"guesses": guessNum[0], "result": "loss", "username": auth.username}
+                    # response = httpx.post(callbackUrl[0], json=packet)
+                    worker(auth.username,"loss", guessNum[0],callbackUrl)
 
                     await db_primary.execute(
                         """
