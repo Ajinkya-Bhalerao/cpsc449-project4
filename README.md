@@ -1,11 +1,11 @@
-### Backend Project 3
+### Backend Project 4
 
-| Group 4          |
+| Group 8          |
 | ---------------  |
 | Ajinkya Bhalerao |
-| Kenny Tran       |
-| Nicholas Girmes  |
-| Sarthak Gajjar   |
+| Joshua Popp      |
+| Nolan O'donnell  |
+| Akhil Chirra     |
 
 ##### HOW TO RUN THE PROJECT
 
@@ -49,6 +49,10 @@ server {
            internal;
            proxy_pass http://127.0.0.1:5000/login;
     }
+    
+    location /webhook {
+        proxy_pass http://gameservice/webhook;
+    }
 
 }
 
@@ -68,7 +72,7 @@ upstream gameservice {
       // step 2. run the script
       ./bin/folder.sh
    ```
-   
+
    ```c
       // step 3. install redis
       pip install redis
@@ -78,7 +82,7 @@ upstream gameservice {
 
    ```c
       foreman start
-      // NOTE: if there's an error upon running this where it doesn't recognize hypercorn, log out of Ubuntu and log back in.
+      // NOTE: There will be an sql error just continue doing the next steps
    ```
 
 4. Initialize the databases within the project folder
@@ -97,10 +101,17 @@ upstream gameservice {
       python3 dbpop.py
    ```
 
-6. Test all the endpoints using httpie
+6. Restart the server to resolve the error
+
+    ```c
+      foreman start
+      // NOTE: Do this to register the callbackUrl
+    ```
+
+7. Test all the endpoints using httpie
    - user
       - register account: `http POST http://tuffix-vm/registration username="yourusername" password="yourpassword"`
-    
+
        Sample Output:
        ```
       {
@@ -131,7 +142,7 @@ upstream gameservice {
    - game
 
       - create a new game: `http --auth test:test123 POST http://tuffix-vm/newgame`
-      
+
       Sample Output:
       ```
       'http --auth yourusername:yourpassword POST http://tuffix-vm/newgame'
@@ -142,7 +153,7 @@ upstream gameservice {
       }
       ```
       Note - this will return a `gameid`
-    - add a guess: `http --auth yourusername:yourpassword PUT http://tuffix-vm/addguess gameid="gameid" word="yourguess"`
+    - add a guess: `http --auth my123:123 PUT http://tuffix-vm/addguess gameid=4c937d8e-7dcf-11ed-a539-1f617cce928f word="yourguess"`
 
     Sample Output:
     ```
@@ -182,9 +193,9 @@ upstream gameservice {
           }
       ]
       ```
-7. Test leaderboard using http docs: http//127.0.0.1:5400/docs
+8. Test leaderboard using http docs: http//127.0.0.1:5400/docs
 
-    POST/results 
+    POST/results
     Sample input:
     ```
         {
@@ -203,7 +214,7 @@ upstream gameservice {
         "username": "User"
     }
     ```
-    
+
     GET/leaderboard
     Sample output:
     ```
