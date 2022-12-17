@@ -1,10 +1,7 @@
-import collections
 import dataclasses
-import databases
 import redis
 import httpx
 import time
-import os
 import socket
 
 from quart import Quart, request, abort, g
@@ -19,14 +16,12 @@ redis_client = redis.Redis(host='localhost', port=6379, db=0, charset='utf-8', d
 
 # before serving client establish connection with games service
 # https://www.python-httpx.org/exceptions/
-response = None
-while response is None:
-    try:
-        game_URL = socket.gethostbyname(socket.getfqdn("tuffix-vm"))
-        port_num = os.environ.get('PORT')
-        callbackUrl = 'http://'+game_URL+':'+port_num+'/result'
-        response = httpx.post('http://tuffix-vm/webhook', json={'callbackUrl': callbackUrl, 'client': 'leaderboard'})
-    except httpx.RequestError:
+
+try:
+        game_URL = socket.getfqdn("127.0.0.1:5100")
+        callbackUrl = 'http://127.0.0.1:5400/results'
+        response = httpx.post('http://'+game_URL+'/webhook', json={'callbackUrl': callbackUrl, 'client': 'leaderboard'})
+except httpx.RequestError:
         time.sleep(5)
 
 @dataclasses.dataclass
@@ -35,17 +30,8 @@ class LeaderboardInformation:
     result: str
     guesses: int
 
-# Connects to game service in start up
-# @app.before_serving
-# async def connect_game_service():
-#     time.sleep(50)
-#     r = httpx.post('http://tuffix-vm/webhook', data={"callbackUrl": "http://127.0.0.1:5400/results"})
-#     Print("Send Webhook")
-
 @app.route("/results", methods=["POST"])
-
 @validate_request(LeaderboardInformation)
-
 async def user_data(data):
     results = dataclasses.asdict(data)
     username = results['username']
@@ -92,7 +78,6 @@ async def user_data(data):
         return redis_client.hgetall('Scores'), 200
 
 @app.route("/leaderboard", methods=["GET"])
-
 async def scores():
 
     scorestop = redis_client.zrange("LeaderBoard", 0, 9, desc = True, withscores = True)

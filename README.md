@@ -153,7 +153,7 @@ upstream gameservice {
       }
       ```
       Note - this will return a `gameid`
-    - add a guess: `http --auth yourusername:yourpassword PUT http://tuffix-vm/addguess gameid="gameid" word="yourguess"`
+    - add a guess: `http --auth my123:123 PUT http://tuffix-vm/addguess gameid=4c937d8e-7dcf-11ed-a539-1f617cce928f word="yourguess"`
 
     Sample Output:
     ```

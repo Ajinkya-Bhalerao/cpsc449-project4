@@ -55,28 +55,29 @@ def _get_db_primary():
     if not hasattr(g, "sqlite_db_primary"):
         g.sqlite_db_primary = _connect_db_primary()
     return g.sqlite_db_primary
-#################################################
-#################################################
 
+#################################################
+###### Forwarding Data To Leaderboard ###########
 def send_data_to_redis_client(packet, callbackUrl):
+    print(packet,callbackUrl)
     try:
-        req = requests.post(url = callbackUrl, json = packet)
+        req = httpx.post(callbackUrl, json = packet)
+        # req_test = httpx.get("http://127.0.0.1:5400/leaderboard")
         print(req.status_code)
     except requests.exceptions.HTTPError:
         return "Error", req.status_code
 
-# Worker Function for enqueuing the Post request
+#################################################
+############# WORKER FUCTION ####################
 def worker(username, result, guesses, callbackUrl):
-    packet = {"guesses": guesses,'result': result,'username':username, }
     redis = Redis()
     queue = Queue(connection=Redis())
     registry = FailedJobRegistry(queue=queue)
+    packet = {"guesses": guesses,'result': result,'username':username}
     result = queue.enqueue(send_data_to_redis_client, packet, callbackUrl)
-    print("-------------------------------------Failed Jobs Log-------------------------")
-    for job_id in registry.get_job_ids():
-        job = Job.fetch(job_id, connection=redis)
-        print("JOB ID'S" + job_id)
-    print("------------------------------------------------------------------------------")
+    for jobid in registry.get_job_ids():
+        job = Job.fetch(jobid, connection=redis)
+        print(jobid)
 
 #################################################
 #################################################
@@ -179,9 +180,8 @@ async def add_guess(data):
             )
 
             # packet = {"guesses": guessNum[0], "result": "win", "username": auth.username}
-            # response = httpx.post(callbackUrl[0], json=packet)
-
-            worker(auth.username,"win", guessNum[0],callbackUrl)
+            # response = httpx.post(callbackUrl[0], json=packet) 
+            worker(auth.username,"win", guessNum[0],callbackUrl[0])
 
 
             return {
@@ -262,7 +262,7 @@ async def add_guess(data):
 
                     # packet = {"guesses": guessNum[0], "result": "loss", "username": auth.username}
                     # response = httpx.post(callbackUrl[0], json=packet)
-                    worker(auth.username,"loss", guessNum[0],callbackUrl)
+                    worker(auth.username,"loss", guessNum[0],callbackUrl[0])
 
                     await db_primary.execute(
                         """
