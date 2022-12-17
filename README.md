@@ -1,11 +1,11 @@
 ### Backend Project 4
 
-| Group 4          |
+| Group 8          |
 | ---------------  |
 | Ajinkya Bhalerao |
 | Joshua Popp      |
-| Nicholas Girmes  |
-| Sarthak Gajjar   |
+| Nolan O'donnell  |
+| Akhil Chirra     |
 
 ##### HOW TO RUN THE PROJECT
 
@@ -48,6 +48,10 @@ server {
     location = /auth {
            internal;
            proxy_pass http://127.0.0.1:5000/login;
+    }
+    
+    location /webhook {
+        proxy_pass http://gameservice/webhook;
     }
 
 }
