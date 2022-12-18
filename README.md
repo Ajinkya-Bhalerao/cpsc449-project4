@@ -213,7 +213,7 @@ upstream gameservice {
 
    $ crontab -e 
    
-   enter the script in the file which opens:
+   enter the script in the file which opens (example : /tmp/crontab.81GywU/crontab):
 
    */10 * * * * run-one rq reque -all --queue default
    
