@@ -64,20 +64,20 @@ def send_data_to_redis_client(packet, callbackUrl):
         req = httpx.post(callbackUrl, json = packet)
         # req_test = httpx.get("http://127.0.0.1:5400/leaderboard")
         print(req.status_code)
-    except requests.exceptions.HTTPError:
+    except httpx.RequestError:
         return "Error", req.status_code
 
 #################################################
 ############# WORKER FUCTION ####################
-def worker(username, result, guesses, callbackUrl):
+def workerQueue(username, result, guesses, callbackUrl):
     redis = Redis()
     queue = Queue(connection=Redis())
     registry = FailedJobRegistry(queue=queue)
     packet = {"guesses": guesses,'result': result,'username':username}
     result = queue.enqueue(send_data_to_redis_client, packet, callbackUrl)
-    for jobid in registry.get_job_ids():
-        job = Job.fetch(jobid, connection=redis)
-        print(jobid)
+    for failed_job in registry.get_job_ids():
+        f = Job.fetch(failed_job, connection=redis)
+        print(f)
 
 #################################################
 #################################################
@@ -181,8 +181,10 @@ async def add_guess(data):
 
             # packet = {"guesses": guessNum[0], "result": "win", "username": auth.username}
             # response = httpx.post(callbackUrl[0], json=packet) 
-            worker(auth.username,"win", guessNum[0],callbackUrl[0])
-
+            # if callbackUrl is None:
+            #     workerQueue(auth.username,"loss", guessNum[0],callbackUrl[0])
+            
+            workerQueue(auth.username,"win", guessNum[0],"http://127.0.0.1:5400/results")
 
             return {
                 "guessedWord": currGame["word"],
@@ -262,7 +264,11 @@ async def add_guess(data):
 
                     # packet = {"guesses": guessNum[0], "result": "loss", "username": auth.username}
                     # response = httpx.post(callbackUrl[0], json=packet)
-                    worker(auth.username,"loss", guessNum[0],callbackUrl[0])
+                    # if callbackUrl is None:
+                    #     workerQueue(auth.username,"loss", guessNum[0],callbackUrl[0])
+                    
+                    workerQueue(auth.username,"win", guessNum[0],"http://127.0.0.1:5400/results")
+                    
 
                     await db_primary.execute(
                         """

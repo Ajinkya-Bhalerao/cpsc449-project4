@@ -22,7 +22,7 @@ try:
         callbackUrl = 'http://127.0.0.1:5400/results'
         response = httpx.post('http://'+game_URL+'/webhook', json={'callbackUrl': callbackUrl, 'client': 'leaderboard'})
 except httpx.RequestError:
-        time.sleep(5)
+        time.sleep(10)
 
 @dataclasses.dataclass
 class LeaderboardInformation:
